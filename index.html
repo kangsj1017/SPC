@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SPC 모델별 SPEC 관리</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  </head>
+  <body>
+    <main class="page">
+      <header class="toolbar">
+        <h1>SPC 모델별 SPEC 관리</h1>
+        <div class="selectors">
+          <label>모델
+            <select id="modelSelect"></select>
+          </label>
+          <label>Type
+            <select id="typeSelect"></select>
+          </label>
+          <label>Chart 항목
+            <select id="chartItemSelect"></select>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="saveAllBtn">현재 50개 SPEC 저장</button>
+          <button id="regenBtn">선택 항목 샘플 재생성(20개)</button>
+          <button id="exportBtn">SPEC 내보내기</button>
+          <label for="importInput" class="file-btn">SPEC 불러오기</label>
+          <input id="importInput" type="file" accept="application/json" />
+        </div>
+      </header>
+
+      <section class="grid-layout">
+        <article class="card">
+          <h2>SPEC 입력 (관리항목 50개)</h2>
+          <div class="table-wrap">
+            <table id="specTable">
+              <thead>
+                <tr>
+                  <th>항목</th>
+                  <th>USL</th>
+                  <th>LSL</th>
+                  <th>UCL</th>
+                  <th>CL</th>
+                  <th>LCL</th>
+                </tr>
+              </thead>
+              <tbody id="specTbody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card chart-card">
+          <h2 id="chartTitle">관리차트</h2>
+          <canvas id="spcChart"></canvas>
+        </article>
+      </section>
+
+      <p id="status" class="status"></p>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
