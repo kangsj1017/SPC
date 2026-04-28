@@ -3,51 +3,61 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SPC Multi-Model Spec Chart</title>
+    <title>SPC 모델별 SPEC 관리</title>
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
   </head>
   <body>
-    <main class="container">
-      <h1>SPC 관리차트 (모델별 SPEC)</h1>
-
-      <section class="controls top-row">
-        <label>
-          모델
-          <select id="modelSelect"></select>
-        </label>
-        <label>
-          Type
-          <select id="typeSelect"></select>
-        </label>
-        <label>
-          관리 항목
-          <select id="itemSelect"></select>
-        </label>
-      </section>
-
-      <section class="controls spec-row">
-        <div class="spec-inputs">
-          <label>USL <input id="uslInput" type="number" step="0.001" /></label>
-          <label>LSL <input id="lslInput" type="number" step="0.001" /></label>
-          <label>UCL <input id="uclInput" type="number" step="0.001" /></label>
-          <label>CL <input id="clInput" type="number" step="0.001" /></label>
-          <label>LCL <input id="lclInput" type="number" step="0.001" /></label>
+    <main class="page">
+      <header class="toolbar">
+        <h1>SPC 모델별 SPEC 관리</h1>
+        <div class="selectors">
+          <label>모델
+            <select id="modelSelect"></select>
+          </label>
+          <label>Type
+            <select id="typeSelect"></select>
+          </label>
+          <label>Chart 항목
+            <select id="chartItemSelect"></select>
+          </label>
         </div>
-        <div class="buttons">
-          <button id="saveSpecBtn">SPEC 저장</button>
-          <button id="regenBtn">샘플 재생성</button>
+        <div class="actions">
+          <button id="saveAllBtn">현재 50개 SPEC 저장</button>
+          <button id="regenBtn">선택 항목 샘플 재생성(20개)</button>
           <button id="exportBtn">SPEC 내보내기</button>
-          <label class="file-load-label" for="importInput">SPEC 불러오기</label>
+          <label for="importInput" class="file-btn">SPEC 불러오기</label>
           <input id="importInput" type="file" accept="application/json" />
         </div>
+      </header>
+
+      <section class="grid-layout">
+        <article class="card">
+          <h2>SPEC 입력 (관리항목 50개)</h2>
+          <div class="table-wrap">
+            <table id="specTable">
+              <thead>
+                <tr>
+                  <th>항목</th>
+                  <th>USL</th>
+                  <th>LSL</th>
+                  <th>UCL</th>
+                  <th>CL</th>
+                  <th>LCL</th>
+                </tr>
+              </thead>
+              <tbody id="specTbody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card chart-card">
+          <h2 id="chartTitle">관리차트</h2>
+          <canvas id="spcChart"></canvas>
+        </article>
       </section>
 
-      <section class="chart-wrap">
-        <canvas id="spcChart"></canvas>
-      </section>
-
-      <p id="statusMsg" class="status"></p>
+      <p id="status" class="status"></p>
     </main>
 
     <script src="app.js"></script>

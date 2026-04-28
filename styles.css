@@ -1,93 +1,133 @@
 :root {
-  color-scheme: light;
-  font-family: "Segoe UI", Arial, sans-serif;
+  font-family: Arial, sans-serif;
+  color: #222;
 }
 
 body {
   margin: 0;
-  background: #efefef;
+  background: #ececec;
 }
 
-.container {
-  max-width: 1200px;
-  margin: 24px auto;
+.page {
+  max-width: 1400px;
+  margin: 16px auto;
   padding: 16px;
+}
+
+.toolbar,
+.card {
   background: #fff;
-  border: 1px solid #d4d4d4;
+  border: 1px solid #cfcfcf;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.toolbar {
+  margin-bottom: 12px;
 }
 
 h1 {
-  margin-top: 0;
+  margin: 0 0 10px;
   font-size: 24px;
 }
 
-.controls {
+h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.selectors,
+.actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  align-items: end;
-  margin-bottom: 14px;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
 label {
-  font-size: 14px;
-  color: #444;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  font-size: 13px;
 }
 
 select,
 input[type="number"],
 button,
-.file-load-label {
-  min-height: 34px;
-  border: 1px solid #b5b5b5;
+.file-btn {
+  min-height: 32px;
+  border: 1px solid #b8b8b8;
   border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 14px;
-}
-
-.spec-inputs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  flex: 1;
-}
-
-.buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  padding: 4px 8px;
+  font-size: 13px;
 }
 
 button,
-.file-load-label {
+.file-btn {
   cursor: pointer;
-  background: #f5f5f5;
+  background: #f4f4f4;
 }
 
-#saveSpecBtn {
-  background: #d8f0d8;
+#saveAllBtn {
+  background: #d7f2d8;
+}
+
+#specTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+#specTable th,
+#specTable td {
+  border: 1px solid #d6d6d6;
+  padding: 6px;
+  text-align: center;
+}
+
+#specTable th {
+  background: #f8f8f8;
+  position: sticky;
+  top: 0;
+}
+
+.table-wrap {
+  max-height: 520px;
+  overflow: auto;
+}
+
+.grid-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 12px;
+}
+
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 620px;
+}
+
+#spcChart {
+  width: 100%;
+  height: 560px;
+}
+
+.active-row {
+  background: #e7f0ff;
+}
+
+#status {
+  color: #1546af;
+  min-height: 20px;
 }
 
 #importInput {
   display: none;
 }
 
-.chart-wrap {
-  background: #f7f7f7;
-  border: 1px solid #cfcfcf;
-  padding: 10px;
-}
-
-#spcChart {
-  width: 100%;
-  height: 420px;
-}
-
-.status {
-  min-height: 20px;
-  color: #1744a5;
-  margin-bottom: 0;
+@media (max-width: 1200px) {
+  .grid-layout {
+    grid-template-columns: 1fr;
+  }
 }

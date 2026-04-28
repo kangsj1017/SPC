@@ -5,118 +5,159 @@ const TYPES = ["1st", "2nd", "3rd"];
 
 const modelSelect = document.getElementById("modelSelect");
 const typeSelect = document.getElementById("typeSelect");
-const itemSelect = document.getElementById("itemSelect");
-const uslInput = document.getElementById("uslInput");
-const lslInput = document.getElementById("lslInput");
-const uclInput = document.getElementById("uclInput");
-const clInput = document.getElementById("clInput");
-const lclInput = document.getElementById("lclInput");
-const saveSpecBtn = document.getElementById("saveSpecBtn");
+const chartItemSelect = document.getElementById("chartItemSelect");
+const specTbody = document.getElementById("specTbody");
+const saveAllBtn = document.getElementById("saveAllBtn");
 const regenBtn = document.getElementById("regenBtn");
 const exportBtn = document.getElementById("exportBtn");
 const importInput = document.getElementById("importInput");
-const statusMsg = document.getElementById("statusMsg");
+const status = document.getElementById("status");
+const chartTitle = document.getElementById("chartTitle");
 
 let chart;
-const store = buildInitialStore();
+const store = buildStore();
 
-function buildInitialStore() {
-  const data = {};
-  MODELS.forEach((model, modelIdx) => {
-    data[model] = {};
-    TYPES.forEach((type, typeIdx) => {
-      data[model][type] = [];
+function buildStore() {
+  const obj = {};
+  MODELS.forEach((model, mi) => {
+    obj[model] = {};
+    TYPES.forEach((type, ti) => {
+      obj[model][type] = [];
       for (let i = 1; i <= ITEM_COUNT; i += 1) {
-        const base = 0.12 + modelIdx * 0.006 + typeIdx * 0.003 + i * 0.0003;
-        const spec = {
+        const cl = round(0.12 + mi * 0.008 + ti * 0.004 + i * 0.0005);
+        const row = {
           itemName: `관리항목 ${String(i).padStart(2, "0")}`,
-          usl: round(base + 0.05),
-          lsl: round(base - 0.05),
-          ucl: round(base + 0.03),
-          cl: round(base),
-          lcl: round(base - 0.03)
+          usl: round(cl + 0.05),
+          lsl: round(cl - 0.05),
+          ucl: round(cl + 0.03),
+          cl,
+          lcl: round(cl - 0.03)
         };
-        data[model][type].push({ ...spec, samples: generateSamples(spec) });
+        row.samples = createSamples(row);
+        obj[model][type].push(row);
       }
     });
   });
-  return data;
+  return obj;
 }
 
 function round(v) {
   return Number(v.toFixed(3));
 }
 
-function generateSamples(spec) {
-  const points = [];
-  const sigma = (spec.ucl - spec.cl) / 3 || 0.003;
-  for (let i = 0; i < SAMPLE_SIZE; i += 1) {
-    const wave = Math.sin((i / SAMPLE_SIZE) * Math.PI * 2) * sigma * 0.6;
-    const jitter = (Math.random() - 0.5) * sigma * 0.8;
-    let value = spec.cl + wave + jitter;
-    value = Math.max(spec.lsl + 0.0005, Math.min(spec.usl - 0.0005, value));
-    points.push(round(value));
-  }
-
-  points[0] = round(Math.min(spec.usl - 0.001, spec.ucl + sigma * 1.7));
-  points[1] = round(Math.max(spec.lsl + 0.001, spec.cl + sigma * 0.8));
-  return points;
-}
-
-function bindSelect(selectEl, values) {
-  selectEl.innerHTML = "";
-  values.forEach((val) => {
-    const opt = document.createElement("option");
-    opt.value = val;
-    opt.textContent = val;
-    selectEl.appendChild(opt);
+function createSamples(spec) {
+  const sigma = Math.max(0.001, (spec.ucl - spec.cl) / 3);
+  return Array.from({ length: SAMPLE_SIZE }, (_, i) => {
+    const wave = Math.sin((i / (SAMPLE_SIZE - 1)) * Math.PI * 2) * sigma * 0.7;
+    const noise = (Math.random() - 0.5) * sigma;
+    const raw = spec.cl + wave + noise;
+    const limited = Math.min(spec.usl - 0.001, Math.max(spec.lsl + 0.001, raw));
+    return round(limited);
   });
 }
 
-function getCurrentEntry() {
-  const model = modelSelect.value;
-  const type = typeSelect.value;
-  const idx = Number(itemSelect.value);
-  return store[model][type][idx];
+function bindBasicSelects() {
+  modelSelect.innerHTML = MODELS.map((m) => `<option value="${m}">${m}</option>`).join("");
+  typeSelect.innerHTML = TYPES.map((t) => `<option value="${t}">${t}</option>`).join("");
 }
 
-function renderSpecFields(entry) {
-  uslInput.value = entry.usl;
-  lslInput.value = entry.lsl;
-  uclInput.value = entry.ucl;
-  clInput.value = entry.cl;
-  lclInput.value = entry.lcl;
+function getItems() {
+  return store[modelSelect.value][typeSelect.value];
 }
 
-function chartLine(value, size = SAMPLE_SIZE) {
-  return new Array(size).fill(value);
+function renderChartItemSelect() {
+  const items = getItems();
+  chartItemSelect.innerHTML = items
+    .map((row, idx) => `<option value="${idx}">${row.itemName}</option>`)
+    .join("");
 }
 
-function renderChart(entry) {
-  const labels = Array.from({ length: SAMPLE_SIZE }, (_, i) => `Lot ${i + 1}`);
+function renderSpecTable() {
+  const items = getItems();
+  specTbody.innerHTML = items
+    .map(
+      (row, idx) => `
+      <tr data-index="${idx}">
+        <td>${row.itemName}</td>
+        <td><input data-key="usl" type="number" step="0.001" value="${row.usl}"></td>
+        <td><input data-key="lsl" type="number" step="0.001" value="${row.lsl}"></td>
+        <td><input data-key="ucl" type="number" step="0.001" value="${row.ucl}"></td>
+        <td><input data-key="cl" type="number" step="0.001" value="${row.cl}"></td>
+        <td><input data-key="lcl" type="number" step="0.001" value="${row.lcl}"></td>
+      </tr>
+    `
+    )
+    .join("");
+  highlightActiveRow(Number(chartItemSelect.value || 0));
+}
+
+function validateRule(spec) {
+  return spec.usl > spec.ucl && spec.ucl >= spec.cl && spec.cl >= spec.lcl && spec.lcl > spec.lsl;
+}
+
+function extractTableRowSpec(tr) {
+  const values = {};
+  tr.querySelectorAll("input").forEach((input) => {
+    values[input.dataset.key] = Number(input.value);
+  });
+  return values;
+}
+
+function saveTableToStore() {
+  const items = getItems();
+  const rows = [...specTbody.querySelectorAll("tr")];
+
+  for (const tr of rows) {
+    const idx = Number(tr.dataset.index);
+    const next = extractTableRowSpec(tr);
+
+    if (Object.values(next).some((v) => !Number.isFinite(v))) {
+      setStatus(`숫자값 오류: ${items[idx].itemName}`);
+      return false;
+    }
+
+    if (!validateRule(next)) {
+      setStatus(`기준식 오류: ${items[idx].itemName} (USL > UCL ≥ CL ≥ LCL > LSL)`);
+      return false;
+    }
+
+    items[idx].usl = round(next.usl);
+    items[idx].lsl = round(next.lsl);
+    items[idx].ucl = round(next.ucl);
+    items[idx].cl = round(next.cl);
+    items[idx].lcl = round(next.lcl);
+  }
+
+  setStatus(`저장 완료: ${modelSelect.value}/${typeSelect.value}의 50개 관리항목 SPEC`);
+  return true;
+}
+
+function renderChart() {
+  const idx = Number(chartItemSelect.value);
+  const row = getItems()[idx];
+  chartTitle.textContent = `${row.itemName} (${modelSelect.value} / ${typeSelect.value})`;
+
   const data = {
-    labels,
+    labels: Array.from({ length: SAMPLE_SIZE }, (_, i) => `Sample ${i + 1}`),
     datasets: [
       {
-        label: entry.itemName,
-        data: entry.samples,
-        borderColor: "#2f61ff",
-        backgroundColor: "#2f61ff",
-        tension: 0.2,
+        label: row.itemName,
+        data: row.samples,
+        borderColor: "#345dff",
+        backgroundColor: "#345dff",
         pointRadius: 4,
-        pointHoverRadius: 5
+        tension: 0.2
       },
-      { label: "USL", data: chartLine(entry.usl), borderColor: "#ef4a4a", borderDash: [5, 4], pointRadius: 0 },
-      { label: "LSL", data: chartLine(entry.lsl), borderColor: "#ef4a4a", borderDash: [5, 4], pointRadius: 0 },
-      { label: "UCL", data: chartLine(entry.ucl), borderColor: "#8f8f8f", borderDash: [2, 3], pointRadius: 0 },
-      { label: "CL", data: chartLine(entry.cl), borderColor: "#2ca24a", borderWidth: 2, pointRadius: 0 },
-      { label: "LCL", data: chartLine(entry.lcl), borderColor: "#8f8f8f", borderDash: [2, 3], pointRadius: 0 }
+      { label: "USL", data: new Array(SAMPLE_SIZE).fill(row.usl), borderColor: "#ff4b4b", borderDash: [6, 4], pointRadius: 0 },
+      { label: "LSL", data: new Array(SAMPLE_SIZE).fill(row.lsl), borderColor: "#ff4b4b", borderDash: [6, 4], pointRadius: 0 },
+      { label: "UCL", data: new Array(SAMPLE_SIZE).fill(row.ucl), borderColor: "#7b7b7b", borderDash: [2, 3], pointRadius: 0 },
+      { label: "CL", data: new Array(SAMPLE_SIZE).fill(row.cl), borderColor: "#2aaf57", borderWidth: 2, pointRadius: 0 },
+      { label: "LCL", data: new Array(SAMPLE_SIZE).fill(row.lcl), borderColor: "#7b7b7b", borderDash: [2, 3], pointRadius: 0 }
     ]
   };
 
   if (chart) {
     chart.data = data;
-    chart.options.plugins.title.text = `${entry.itemName} (${modelSelect.value}/${typeSelect.value})`;
     chart.update();
     return;
   }
@@ -125,155 +166,117 @@ function renderChart(entry) {
     type: "line",
     data,
     options: {
+      responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "bottom" },
-        title: {
-          display: true,
-          text: `${entry.itemName} (${modelSelect.value}/${typeSelect.value})`,
-          align: "start",
-          color: "#666",
-          font: { size: 24, weight: "normal" }
-        }
-      },
+      plugins: { legend: { position: "bottom" } },
       scales: {
-        y: {
-          grid: { color: "#d0d0d0" },
-          ticks: { color: "#444" }
-        },
-        x: {
-          ticks: { maxRotation: 55, minRotation: 55, autoSkip: false, font: { size: 10 } }
-        }
+        x: { ticks: { maxRotation: 45, minRotation: 45 } },
+        y: { grid: { color: "#d0d0d0" } }
       }
     }
   });
 }
 
-function populateItems() {
-  const items = store[modelSelect.value][typeSelect.value];
-  itemSelect.innerHTML = "";
-  items.forEach((item, idx) => {
-    const opt = document.createElement("option");
-    opt.value = String(idx);
-    opt.textContent = item.itemName;
-    itemSelect.appendChild(opt);
+function setStatus(msg) {
+  status.textContent = msg;
+}
+
+function highlightActiveRow(index) {
+  specTbody.querySelectorAll("tr").forEach((tr) => {
+    tr.classList.toggle("active-row", Number(tr.dataset.index) === index);
   });
 }
 
 function refreshAll() {
-  const entry = getCurrentEntry();
-  renderSpecFields(entry);
-  renderChart(entry);
+  renderChartItemSelect();
+  renderSpecTable();
+  renderChart();
 }
 
-function validateSpec(spec) {
-  const required = ["usl", "lsl", "ucl", "cl", "lcl"];
-  for (const key of required) {
-    if (!Number.isFinite(spec[key])) {
-      return `${key.toUpperCase()} 값이 유효하지 않습니다.`;
-    }
-  }
-  if (!(spec.usl > spec.ucl && spec.ucl >= spec.cl && spec.cl >= spec.lcl && spec.lcl > spec.lsl)) {
-    return "기준은 USL > UCL ≥ CL ≥ LCL > LSL 을 만족해야 합니다.";
-  }
-  return "";
-}
+modelSelect.addEventListener("change", refreshAll);
+typeSelect.addEventListener("change", refreshAll);
 
-function setStatus(message) {
-  statusMsg.textContent = message;
-}
-
-modelSelect.addEventListener("change", () => {
-  populateItems();
-  refreshAll();
+chartItemSelect.addEventListener("change", () => {
+  highlightActiveRow(Number(chartItemSelect.value));
+  renderChart();
 });
 
-typeSelect.addEventListener("change", () => {
-  populateItems();
-  refreshAll();
+specTbody.addEventListener("click", (e) => {
+  const tr = e.target.closest("tr");
+  if (!tr) return;
+  chartItemSelect.value = tr.dataset.index;
+  highlightActiveRow(Number(tr.dataset.index));
+  renderChart();
 });
 
-itemSelect.addEventListener("change", refreshAll);
-
-saveSpecBtn.addEventListener("click", () => {
-  const entry = getCurrentEntry();
-  const nextSpec = {
-    usl: Number(uslInput.value),
-    lsl: Number(lslInput.value),
-    ucl: Number(uclInput.value),
-    cl: Number(clInput.value),
-    lcl: Number(lclInput.value)
-  };
-  const err = validateSpec(nextSpec);
-  if (err) {
-    setStatus(err);
-    return;
-  }
-  Object.assign(entry, nextSpec);
-  entry.samples = generateSamples(entry);
-  renderChart(entry);
-  setStatus(`${entry.itemName} SPEC이 저장되었습니다.`);
+saveAllBtn.addEventListener("click", () => {
+  if (!saveTableToStore()) return;
+  renderSpecTable();
+  renderChart();
 });
 
 regenBtn.addEventListener("click", () => {
-  const entry = getCurrentEntry();
-  entry.samples = generateSamples(entry);
-  renderChart(entry);
-  setStatus(`${entry.itemName} 샘플(${SAMPLE_SIZE}개)을 재생성했습니다.`);
+  if (!saveTableToStore()) return;
+  const idx = Number(chartItemSelect.value);
+  const row = getItems()[idx];
+  row.samples = createSamples(row);
+  renderChart();
+  setStatus(`${row.itemName} 샘플 20개 재생성 완료`);
 });
 
 exportBtn.addEventListener("click", () => {
+  if (!saveTableToStore()) return;
   const blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "spc-specs.json";
   a.click();
   URL.revokeObjectURL(a.href);
-  setStatus("SPEC JSON을 내보냈습니다.");
+  setStatus("SPEC JSON 내보내기 완료");
 });
 
 importInput.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
+
   try {
-    const text = await file.text();
-    const parsed = JSON.parse(text);
-    MODELS.forEach((model) => {
-      TYPES.forEach((type) => {
-        if (Array.isArray(parsed?.[model]?.[type]) && parsed[model][type].length === ITEM_COUNT) {
-          store[model][type] = parsed[model][type].map((item, idx) => {
-            const fallback = store[model][type][idx];
-            return {
-              itemName: item.itemName || fallback.itemName,
-              usl: Number(item.usl),
-              lsl: Number(item.lsl),
-              ucl: Number(item.ucl),
-              cl: Number(item.cl),
-              lcl: Number(item.lcl),
-              samples: Array.isArray(item.samples) && item.samples.length === SAMPLE_SIZE
-                ? item.samples.map((v) => Number(v))
-                : generateSamples(item)
-            };
-          });
-        }
+    const parsed = JSON.parse(await file.text());
+    MODELS.forEach((m) => {
+      TYPES.forEach((t) => {
+        const list = parsed?.[m]?.[t];
+        if (!Array.isArray(list) || list.length !== ITEM_COUNT) return;
+        store[m][t] = list.map((item, idx) => {
+          const fallback = store[m][t][idx];
+          const merged = {
+            itemName: item.itemName || fallback.itemName,
+            usl: Number(item.usl),
+            lsl: Number(item.lsl),
+            ucl: Number(item.ucl),
+            cl: Number(item.cl),
+            lcl: Number(item.lcl)
+          };
+          if (!validateRule(merged)) {
+            return fallback;
+          }
+          return {
+            ...merged,
+            samples: Array.isArray(item.samples) && item.samples.length === SAMPLE_SIZE
+              ? item.samples.map((v) => Number(v))
+              : createSamples(merged)
+          };
+        });
       });
     });
-    populateItems();
+
     refreshAll();
-    setStatus("SPEC JSON 불러오기를 완료했습니다.");
-  } catch (e) {
-    setStatus(`불러오기 실패: ${e.message}`);
+    setStatus("SPEC 불러오기 완료");
+  } catch (err) {
+    setStatus(`불러오기 실패: ${err.message}`);
   } finally {
     importInput.value = "";
   }
 });
 
-function init() {
-  bindSelect(modelSelect, MODELS);
-  bindSelect(typeSelect, TYPES);
-  populateItems();
-  refreshAll();
-  setStatus(`초기 데이터: 모델 ${MODELS.length}개 × Type ${TYPES.length}개 × 항목 ${ITEM_COUNT}개`);
-}
-
-init();
+bindBasicSelects();
+refreshAll();
+setStatus(`초기화 완료: 샘플 ${SAMPLE_SIZE}개 / 관리항목 ${ITEM_COUNT}개`);
